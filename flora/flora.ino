@@ -1,3 +1,5 @@
+#include <dummy.h>
+
 /**
    A BLE client for the Xiaomi Mi Plant Sensor, pushing measurements to an MQTT server.
 
@@ -36,9 +38,6 @@
 #include <PubSubClient.h>
 
 #include "config.h"
-
-// boot count used to check if battery status should be read
-RTC_DATA_ATTR int bootCount = 0;
 
 // Root service for Flora Devices
 static BLEUUID rootServiceDataUUID((uint16_t) 0xfe95);
@@ -268,7 +267,7 @@ bool readFloraBatteryCharacteristic(BLERemoteService* floraService, String baseT
   return true;
 }
 
-bool processFloraService(BLERemoteService* floraService, const char* deviceMacAddress, bool readBattery) {
+bool processFloraService(BLERemoteService* floraService, const char* deviceMacAddress) {
   // set device in data mode
   if (!forceFloraServiceDataMode(floraService)) {
     return false;
@@ -278,14 +277,12 @@ bool processFloraService(BLERemoteService* floraService, const char* deviceMacAd
   bool dataSuccess = readFloraDataCharacteristic(floraService, baseTopic);
 
   bool batterySuccess = true;
-  if (readBattery) {
-    batterySuccess = readFloraBatteryCharacteristic(floraService, baseTopic);
-  }
+  batterySuccess = readFloraBatteryCharacteristic(floraService, baseTopic);
 
   return dataSuccess && batterySuccess;
 }
 
-bool processFloraDevice(BLEAddress floraAddress, bool getBattery, int tryCount) {
+bool processFloraDevice(BLEAddress floraAddress, int tryCount) {
   Serial.print("Processing Flora device at ");
   Serial.print(floraAddress.toString().c_str());
   Serial.print(" (try ");
@@ -306,7 +303,7 @@ bool processFloraDevice(BLEAddress floraAddress, bool getBattery, int tryCount) 
   }
 
   // process devices data
-  bool success = processFloraService(floraService, floraAddress.toString().c_str(), getBattery);
+  bool success = processFloraService(floraService, floraAddress.toString().c_str());
 
   // disconnect from device
   floraClient->disconnect();
@@ -407,9 +404,6 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  // increase boot count
-  bootCount++;
-
   // create a hibernate task in case something gets stuck
   xTaskCreate(delayedHibernate, "hibernate", 4096, NULL, 1, &hibernateTaskHandle);
 
@@ -425,10 +419,6 @@ void setup() {
     connectWifi();
     connectMqtt();
 
-    // check if battery status should be read - based on boot count
-    bool readBattery = ((bootCount % BATTERY_INTERVAL) == 0);
-    if (readBattery) Serial.println("Battery will be read during this run");
-
     // process devices
     for (int i = 0; i < floraScanner.getDeviceCount(); i++) {
       int tryCount = 0;
@@ -436,7 +426,7 @@ void setup() {
 
       while (tryCount < RETRY) {
         tryCount++;
-        if (processFloraDevice(floraAddress, readBattery, tryCount)) {
+        if (processFloraDevice(floraAddress, tryCount)) {
           break;
         }
         delay(1000);
