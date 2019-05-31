@@ -22,7 +22,6 @@ Software:
 ## Measuring interval
 
 The ESP32 will scan BLE devices to find Xiaomi Mi Plant sensors. Then it perform a single connection attempt to the Xiaomi Mi Plant sensor, read the sensor data & push it to the MQTT server. The ESP32 will enter deep sleep mode after all sensors have been read and sleep for X minutes before repeating the exercise...
-Battery level is read every Xth wakeup.
 Up to X attempst per sensor are performed when reading the data fails.
 
 ## Configuration
@@ -31,7 +30,6 @@ Up to X attempst per sensor are performed when reading the data fails.
 - BLE_SCAN_DURATION - duration of the initial BLE scan used to look for Xiaomi Mi Plant sensors
 - SLEEP_DURATION - how long should the device sleep between sensor reads?
 - EMERGENCY_HIBERNATE - how long after wakeup should the device forcefully go to sleep (e.g. when something gets stuck)?
-- BATTERY_INTERVAL - how ofter should the battery status be read?
 - RETRY - how ofter should a single device be tried on each run?
 
 ## Constraints
